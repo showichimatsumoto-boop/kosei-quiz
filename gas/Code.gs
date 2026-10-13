@@ -44,8 +44,9 @@ function setup() {
   if (!book.getSheetByName('設定')) {
     var settings = book.insertSheet('設定');
     settings.appendRow(SETTINGS_HEADER);
-    settings.appendRow(['basic', '基礎課程 結業測驗', '2026-10', 5, 7, 3, newKey(), '']);
-    settings.appendRow(['advanced', '上級課程 結業測驗', '2026-10', '', '', '', newKey(), '']);
+    // 版本と鍵は先頭に ' を付けて文字として入れる（日付や数値に変換されないように）
+    settings.appendRow(['basic', '基礎課程 結業測驗', "'2026-10", 5, 7, 3, "'" + newKey(), '']);
+    settings.appendRow(['advanced', '上級課程 結業測驗', "'2026-10", '', '', '', "'" + newKey(), '']);
     settings.setFrozenRows(1);
   }
   if (!book.getSheetByName('問題')) {
@@ -60,7 +61,7 @@ function setup() {
 /* 鍵を変えたあとに実行すると、QR Code 用 URL を作り直す。 */
 function refreshQrUrls() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('設定');
-  var rows = sheet.getDataRange().getValues();
+  var rows = sheet.getDataRange().getDisplayValues();
   for (var i = 1; i < rows.length; i++) {
     if (COURSES.indexOf(rows[i][0]) === -1) continue;
     sheet.getRange(i + 1, 8).setValue(SITE_URL + rows[i][0] + '/#k=' + rows[i][6]);
@@ -111,7 +112,7 @@ function findSetting(course) {
   if (COURSES.indexOf(course) === -1) return null;
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('設定');
   if (!sheet) return null;
-  var rows = sheet.getDataRange().getValues();
+  var rows = sheet.getDataRange().getDisplayValues();
   for (var i = 1; i < rows.length; i++) {
     if (rows[i][0] !== course) continue;
     var draw = null;
@@ -126,7 +127,8 @@ function findSetting(course) {
 /* 「問題」シートの行を、テストページが読む形（questions/*.json と同じ形）に組み立てる。
    形式の誤りはテストページ側の検査がエラー一覧として表示する。 */
 function buildQuiz(course, setting) {
-  var rows = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('問題').getDataRange().getValues();
+  // 表示されている文字のまま読む（「70%」が 0.7 に、「1/3」が日付になるのを防ぐ）
+  var rows = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('問題').getDataRange().getDisplayValues();
   var questions = [];
   for (var i = 1; i < rows.length; i++) {
     var r = rows[i];
