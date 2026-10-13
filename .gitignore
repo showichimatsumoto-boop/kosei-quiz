@@ -1,0 +1,15 @@
+# Mac
+.DS_Store
+
+# editor
+.vscode/
+.idea/
+
+# 講座テキスト（公開リポジトリに載せない）
+*.docx
+
+# 問題の下書き（公開リポジトリに載せない）
+drafts/
+
+# Claude Code のローカル設定
+.claude/
