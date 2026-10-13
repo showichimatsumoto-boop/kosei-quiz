@@ -13,3 +13,10 @@ drafts/
 
 # Claude Code のローカル設定
 .claude/
+
+# 支局の内部文書（公開しない）
+講座到達度定義*.md
+
+# 鍵入りQRコード（公開しない）
+qr_*.png
+*.png

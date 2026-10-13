@@ -14,7 +14,10 @@ var LETTERS = ['A', 'B', 'C', 'D'];
 var LAYER_NAMES = { '說得出': 'say', '分得出': 'distinguish', '用法': 'use' };
 
 var SETTINGS_HEADER = ['課程', '標題', '版本', '說得出', '分得出', '用法', '鍵', 'QR Code 用 URL'];
-var QUESTIONS_HEADER = ['課程', 'id', '層', '問題', '選項A', '選項B', '選項C', '選項D', '正解', '誤解選項', '說明', '補充'];
+var QUESTIONS_HEADER = ['課程', 'id', '層', '問題', '選項A', '選項B', '選項C', '選項D', '正解', '誤解選項', '說明', '補充', '到達度'];
+var OUT_OF_SCOPE = '範囲外';
+// 「4/5」「1:2/2」などが日付・時刻に変換されないよう、文字として書き込む列
+var TEXT_FIELDS = ['say', 'distinguish', 'use', 'wrong', 'questions', 'objectives', 'sessionId', 'version'];
 var RESULT_COLUMNS = [
   ['receivedAt', '受信日時'],
   ['course', '課程'],
@@ -31,7 +34,8 @@ var RESULT_COLUMNS = [
   ['wrong', '誤答した問題'],
   ['questions', '出題した問題'],
   ['sessionId', 'セッションID'],
-  ['version', '問題版']
+  ['version', '問題版'],
+  ['objectives', '到達度別']
 ];
 
 /* ---------- 初回だけエディタから実行する ---------- */
@@ -96,7 +100,9 @@ function doPost(e) {
     var lock = LockService.getScriptLock();
     lock.waitLock(10000);
     try {
-      getResultSheet().appendRow(RESULT_COLUMNS.map(function (c) { return cell(data[c[0]]); }));
+      getResultSheet().appendRow(RESULT_COLUMNS.map(function (c) {
+        return cell(data[c[0]], TEXT_FIELDS.indexOf(c[0]) !== -1);
+      }));
     } finally {
       lock.releaseLock();
     }
@@ -133,6 +139,9 @@ function buildQuiz(course, setting) {
   for (var i = 1; i < rows.length; i++) {
     var r = rows[i];
     if (r[0] !== course) continue;
+    // 「到達度」が「範囲外」の問題はシートに残したまま出題しない
+    var objective = String(r[12] || '').trim();
+    if (objective === OUT_OF_SCOPE) continue;
     var answer = String(r[8]).trim().toUpperCase();
     var misconception = String(r[9]).trim().toUpperCase();
     var q = {
@@ -145,7 +154,8 @@ function buildQuiz(course, setting) {
         return option;
       }),
       answer: answer.toLowerCase(),
-      explanation: String(r[10])
+      explanation: String(r[10]),
+      objective: objective
     };
     if (String(r[11]).trim()) q.misconceptionNote = String(r[11]);
     questions.push(q);
@@ -166,12 +176,12 @@ function getResultSheet() {
   return sheet;
 }
 
-function cell(value) {
-  if (value === undefined || value === null) return '';
+function cell(value, asText) {
+  if (value === undefined || value === null || value === '') return '';
   if (typeof value !== 'string') return value;
   value = value.slice(0, 200);
-  // 「=」などで始まる文字列が数式として解釈されないようにする
-  return /^[=+\-@]/.test(value) ? "'" + value : value;
+  // 先頭に ' を付けると文字として保存される（数式・日付・時刻への自動変換を防ぐ）
+  return asText || /^[=+\-@]/.test(value) ? "'" + value : value;
 }
 
 function reply(body) {

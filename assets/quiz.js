@@ -146,6 +146,7 @@ function buildItems(questions) {
       id: q.id,
       prompt: q.prompt,
       layer: q.layer,
+      objective: q.objective || '',
       answer: q.answer,
       explanation: q.explanation,
       misconceptionNote: q.misconceptionNote,
@@ -215,8 +216,24 @@ function buildResult(correctCount, layerScores) {
     use: layerScores.use || '',
     wrong: items.filter(function (item) { return item.picked !== item.answer; })
       .map(function (item) { return item.id; }).join(','),
-    questions: items.map(function (item) { return item.id; }).join(',')
+    questions: items.map(function (item) { return item.id; }).join(','),
+    objectives: objectiveScores()
   };
+}
+
+/* 到達度ごとの正答数（例: "1:2/2, 3:1/2, 6:0/1"）。到達度のない問題は数えない。 */
+function objectiveScores() {
+  var tally = {};
+  items.forEach(function (item) {
+    if (!item.objective) return;
+    var t = tally[item.objective] || (tally[item.objective] = { ok: 0, total: 0 });
+    t.total += 1;
+    if (item.picked === item.answer) t.ok += 1;
+  });
+  return Object.keys(tally)
+    .sort(function (a, b) { return Number(a) - Number(b) || (a < b ? -1 : 1); })
+    .map(function (k) { return k + ':' + tally[k].ok + '/' + tally[k].total; })
+    .join(', ');
 }
 
 /* ---------- screens ---------- */
