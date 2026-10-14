@@ -20,3 +20,6 @@ drafts/
 # 鍵入りQRコード（公開しない）
 qr_*.png
 *.png
+
+# 配布用PDF（公開しない）
+*.pdf
